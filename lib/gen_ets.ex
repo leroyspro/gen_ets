@@ -84,6 +84,7 @@ defmodule GenETS do
     GenServer.call(server_name(table_name), {:exists?, key})
   end
 
+  @impl true
   def init(args) do
     %{table_name: table_name, table_args: table_args} = args
 
@@ -97,24 +98,28 @@ defmodule GenETS do
     {:ok, state}
   end
 
+  @impl true
   def handle_call({:read, key}, _from, state) do
     result = ETS.lookup(state.table_ref, key)
 
     {:reply, result, state}
   end
 
+  @impl true
   def handle_call({:write, key, value}, _from, state) do
     true = ETS.insert(state.table_ref, {key, value})
 
     {:reply, :ok, state}
   end
 
+  @impl true
   def handle_call({:delete, key}, _from, state) do
     ETS.delete(state.table_ref, key)
 
     {:reply, :ok, state}
   end
 
+  @impl true
   def handle_call({:exists?, key}, _from, state) do
     result =
       case ETS.lookup(state.table_ref, key) do
@@ -125,10 +130,29 @@ defmodule GenETS do
     {:reply, result, state}
   end
 
+  @impl true
   def handle_call(:prune, _from, state) do
     ETS.delete_all_objects(state.table_ref)
 
     {:reply, :ok, state}
+  end
+
+  @impl true
+  def handle_call(message, _from, state) do
+    Logger.warning("Got unknown call message: #{inspect(message)}")
+    {:reply, {:error, :badarg}, state}
+  end
+
+  @impl true
+  def handle_cast(message, state) do
+    Logger.warning("Got unknown cast message: #{inspect(message)}")
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(message, state) do
+    Logger.warning("Got unknown info message: #{inspect(message)}")
+    {:noreply, state}
   end
 
   defp server_name(table_name), do: :"GenETS.#{table_name}"
